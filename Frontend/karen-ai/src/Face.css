@@ -1,0 +1,72 @@
+.karen-screen {
+  background: black;
+  height: 100vh;
+  display: flex;
+}
+.face{
+        width: 100%;
+    /* display: flex; */
+    /* flex-direction: column; */
+    /* justify-items: center; */
+    /* align-items: center; */
+    /* justify-self: center; */
+    /* margin: auto; */
+}
+.eyes{
+      display: flex;
+
+}
+.eye {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #00f0ff;
+  border-radius: 50%;
+  background: rgba(0, 255, 255, 0.1);
+  margin: 5px;
+  box-shadow: 0 0 10px #00f0ff;
+}
+
+.mouth {
+width: 100%;
+  height: 100%;
+}
+#mouth-canvas{
+
+    width: 100%;
+}
+#mouth-audio{
+    margin: 20px 0;
+}
+.mood-analyser{
+        position: absolute;
+    bottom: 0px;
+    right: 0;
+}
+
+@keyframes talk {
+  0%, 100% {
+    transform: scaleY(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scaleY(0.4);
+    opacity: 0.6;
+  }
+}
+
+.text-display {
+  position: absolute;
+  bottom: 15px;
+  font-size: 16px;
+  animation: flicker 2s infinite;
+  text-shadow: 0 0 8px #00f0ff;
+}
+
+@keyframes flicker {
+  0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
+    opacity: 1;
+  }
+  20%, 22%, 24%, 55% {
+    opacity: 0.3;
+  }
+}
