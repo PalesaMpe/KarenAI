@@ -10,7 +10,7 @@ from TTS.api import TTS
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # or ["*"] for local testing
+    allow_origins=["*"],  # or ["*"] for local testing
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -32,7 +32,10 @@ tts.to(device)
 
 @app.post("/generate")
 def generate(prompt: str):
-    response = ollama.chat(model="mistral", messages=[{"role": "user", "content": prompt}])
+    response = ollama.chat(model="gemma:2b",  messages=[
+        {"role": "system", "content": "You are Karen from SpongeBob. Speak like a sarcastic, robotic, passive-aggressive AI wife."},
+        {"role": "user", "content": prompt}
+    ])
     ai_text = response["message"]["content"]
 
     output_file = "output.wav"
