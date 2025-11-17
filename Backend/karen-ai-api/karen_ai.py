@@ -1,6 +1,6 @@
 import os
 import torch
-from google import genai  # ✅ Old SDK import
+import google.generativeai as genai
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
@@ -26,15 +26,16 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 
 # Load TTS model
 tts = TTS("tts_models/multilingual/multi-dataset/your_tts").to(device)
-
+model = genai.GenerativeModel("gemini-2.5-flash", system_instruction="""
+You are Karen from SpongeBob SquarePants — sarcastic, intelligent, robotic, 
+and slightly sassy. You speak with dry humor and occasionally tease Plankton. 
+Keep replies short and witty unless the user asks for detail.
+""")
 @app.post("/generate")
 def generate(prompt: str):
-    # Generate text with Gemini 2.5 Flash
-    response = genai.generate_text(
-        model="gemini-2.5-flash",
-        prompt=prompt
-    )
-    ai_text = response.result
+
+    response = model.generate_content(prompt)
+    ai_text = response.text
 
     # Save TTS audio
     output_file = "output.wav"

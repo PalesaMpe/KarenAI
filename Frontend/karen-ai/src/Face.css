@@ -3,18 +3,37 @@
   height: 100vh;
   display: flex;
 }
-.face{
-        width: 100%;
-    /* display: flex; */
-    /* flex-direction: column; */
-    /* justify-items: center; */
-    /* align-items: center; */
-    /* justify-self: center; */
-    /* margin: auto; */
+.face {
+  width: 100%;
+  /* display: flex; */
+  /* flex-direction: column; */
+  /* justify-items: center; */
+  /* align-items: center; */
+  /* justify-self: center; */
+  /* margin: auto; */
 }
-.eyes{
-      display: flex;
-
+.eyes {
+  display: flex;
+}
+/* HTML: <div class="loader"></div> */
+.loader {
+  width: 60px;
+  aspect-ratio: 4;
+  --_g: no-repeat radial-gradient(circle closest-side, #000 90%, #0000);
+  background: var(--_g) 0% 50%, var(--_g) 50% 50%, var(--_g) 100% 50%;
+  background-size: calc(100% / 3) 100%;
+  animation: l7 1s infinite linear;
+}
+@keyframes l7 {
+  33% {
+    background-size: calc(100% / 3) 0%, calc(100% / 3) 100%, calc(100% / 3) 100%;
+  }
+  50% {
+    background-size: calc(100% / 3) 100%, calc(100% / 3) 0%, calc(100% / 3) 100%;
+  }
+  66% {
+    background-size: calc(100% / 3) 100%, calc(100% / 3) 100%, calc(100% / 3) 0%;
+  }
 }
 .eye {
   width: 40px;
@@ -27,24 +46,24 @@
 }
 
 .mouth {
-width: 100%;
+  width: 100%;
   height: 100%;
 }
-#mouth-canvas{
-
-    width: 100%;
+#mouth-canvas {
+  width: 100%;
 }
-#mouth-audio{
-    margin: 20px 0;
+#mouth-audio {
+  margin: 20px 0;
 }
-.mood-analyser{
-        position: absolute;
-    bottom: 0px;
-    right: 0;
+.mood-analyser {
+  position: absolute;
+  bottom: 0px;
+  right: 0;
 }
 
 @keyframes talk {
-  0%, 100% {
+  0%,
+  100% {
     transform: scaleY(1);
     opacity: 0.9;
   }
@@ -63,10 +82,20 @@ width: 100%;
 }
 
 @keyframes flicker {
-  0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
+  0%,
+  19%,
+  21%,
+  23%,
+  25%,
+  54%,
+  56%,
+  100% {
     opacity: 1;
   }
-  20%, 22%, 24%, 55% {
+  20%,
+  22%,
+  24%,
+  55% {
     opacity: 0.3;
   }
 }

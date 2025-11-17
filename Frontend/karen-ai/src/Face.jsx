@@ -19,7 +19,7 @@ function Face() {
 
   const [lastTranscript, setLastTranscript] = useState("");
   const [isTriggerWordDetected, setTriggerWordDetected] = useState(false);
-  const triggerWord = "test";
+  const triggerWord = "karen";
   const timeoutRef = useRef(null);
 
   useEffect(() => {
@@ -48,6 +48,8 @@ function Face() {
     if (!isTriggerWordDetected) {
       if (transcript.toLowerCase().includes(triggerWord)) {
         setTriggerWordDetected(true);
+        resetTranscript();
+        if (audioRef.current) audioRef.current.src = "";
         console.log("Trigger word detected! Listening for command...");
       }
       return;
@@ -80,7 +82,7 @@ function Face() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
             console.log("audio", audio);
-          //  visualiseSpeech();
+            //  visualiseSpeech();
           }
 
           // Reset state
