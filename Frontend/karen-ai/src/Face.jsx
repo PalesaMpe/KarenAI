@@ -10,6 +10,8 @@ function Face() {
   const audioSourceRef = useRef(null);
   const analyserRef = useRef(null);
   const animationIdRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
   const {
     transcript,
     listening,
@@ -23,8 +25,23 @@ function Face() {
   const timeoutRef = useRef(null);
 
   useEffect(() => {
-    SpeechRecognition.startListening({ continuous: true });
+    const initializeAudioCapture = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+        });
+        mediaRecorderRef.current = new MediaRecorder(stream);
 
+        mediaRecorderRef.current.ondataavailable = (event) => {
+          audioChunksRef.current.push(event.data);
+        };
+      } catch (err) {
+        console.error("Error accessing microphone:", err);
+      }
+    };
+
+    SpeechRecognition.startListening({ continuous: true });
+    initializeAudioCapture();
     return () => {
       if (audioContextRef.current) {
         audioContextRef.current.close();
@@ -35,6 +52,11 @@ function Face() {
       cancelAnimationFrame(animationIdRef.current);
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
+      }
+      if (mediaRecorderRef.current && mediaRecorderRef.current.stream) {
+        mediaRecorderRef.current.stream
+          .getTracks()
+          .forEach((track) => track.stop());
       }
     };
   }, []);
@@ -49,6 +71,8 @@ function Face() {
       if (transcript.toLowerCase().includes(triggerWord)) {
         setTriggerWordDetected(true);
         resetTranscript();
+        audioChunksRef.current = [];
+        mediaRecorderRef.current?.start();
         if (audioRef.current) audioRef.current.src = "";
         console.log("Trigger word detected! Listening for command...");
       }
@@ -61,37 +85,46 @@ function Face() {
       if (transcript !== lastTranscript) {
         console.log("Final transcript:", transcript);
         setLastTranscript(transcript);
+        mediaRecorderRef.current?.stop();
+        mediaRecorderRef.current.onstop = async () => {
+          const audioBlob = new Blob(audioChunksRef.current, {
+            type: "audio/wav",
+          });
+          audioChunksRef.current = [];
 
-        try {
-          const res = await fetch(
-            `http://127.0.0.1:8001/generate?prompt=${transcript}`,
-            {
+          try {
+                        const formData = new FormData();
+            formData.append("transcript", transcript);
+            formData.append("audio", audioBlob, "audio.wav");
+
+console.log(typeof audioBlob, audioBlob);
+            const res = await fetch(`http://127.0.0.1:8001/generate`, {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
+              body: formData,
+            });
+            if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+            const blob = await res.blob();
+            const audioUrl = URL.createObjectURL(blob);
+
+            const canvas = canvasRef.current;
+            const audio = audioRef.current;
+
+            if (canvas && audio) {
+              audio.src = audioUrl;
+              canvas.width = window.innerWidth;
+              canvas.height = window.innerHeight;
+              console.log("audio", audio);
+              //  visualiseSpeech();
             }
-          );
-          if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-          const blob = await res.blob();
-          const audioUrl = URL.createObjectURL(blob);
 
-          const canvas = canvasRef.current;
-          const audio = audioRef.current;
-
-          if (canvas && audio) {
-            audio.src = audioUrl;
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            console.log("audio", audio);
-            //  visualiseSpeech();
+            // Reset state
+            resetTranscript();
+            setTriggerWordDetected(false);
+            setLastTranscript("");
+          } catch (err) {
+            console.error("fetch /generate failed:", err);
           }
-
-          // Reset state
-          resetTranscript();
-          setTriggerWordDetected(false);
-          setLastTranscript("");
-        } catch (err) {
-          console.error("fetch /generate failed:", err);
-        }
+        };
       }
     }, 1500); // Wait 1.5 seconds of silence
   }, [transcript, lastTranscript, isTriggerWordDetected]);
