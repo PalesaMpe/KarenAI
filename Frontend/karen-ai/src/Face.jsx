@@ -1,7 +1,8 @@
-import { useEffect, useRef } from "react";
-import {useSpeechSynthesis} from 'react-speech-kit';
+import { useEffect, useRef, useState } from "react";
 import "./Face.css";
-
+import SpeechRecognition, {
+  useSpeechRecognition,
+} from "react-speech-recognition";
 function Face() {
   const canvasRef = useRef(null);
   const audioRef = useRef(null);
@@ -9,37 +10,38 @@ function Face() {
   const audioSourceRef = useRef(null);
   const analyserRef = useRef(null);
   const animationIdRef = useRef(null);
-  const { speak, voices } = useSpeechSynthesis();
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const {
+    transcript,
+    listening,
+    resetTranscript,
+    browserSupportsSpeechRecognition,
+  } = useSpeechRecognition();
+
+  const [lastTranscript, setLastTranscript] = useState("");
+  const [isTriggerWordDetected, setTriggerWordDetected] = useState(false);
+  const triggerWord = "karen";
+  const timeoutRef = useRef(null);
 
   useEffect(() => {
-   async function fetchPrompt() {
+    const initializeAudioCapture = async () => {
       try {
-        const res = await fetch(`http://127.0.0.1:8001/generate?prompt="hi"`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-        if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-      const blob = await res.blob();
-      const audioUrl = URL.createObjectURL(blob);
-        console.log("generate response:",  res);
-        // set state here if needed, e.g. setTodos(data);
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+        });
+        mediaRecorderRef.current = new MediaRecorder(stream);
 
-          const canvas = canvasRef.current;
-    const audio = audioRef.current;
-
-    if (canvas && audio) {
-      audio.src = audioUrl;
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    }
-    
+        mediaRecorderRef.current.ondataavailable = (event) => {
+          audioChunksRef.current.push(event.data);
+        };
       } catch (err) {
-        console.error("fetch /generate failed:", err);
+        console.error("Error accessing microphone:", err);
       }
-    }
-    fetchPrompt();
-  
+    };
 
+    SpeechRecognition.startListening({ continuous: true });
+    initializeAudioCapture();
     return () => {
       if (audioContextRef.current) {
         audioContextRef.current.close();
@@ -48,24 +50,159 @@ function Face() {
         analyserRef.current = null;
       }
       cancelAnimationFrame(animationIdRef.current);
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      if (mediaRecorderRef.current && mediaRecorderRef.current.stream) {
+        mediaRecorderRef.current.stream
+          .getTracks()
+          .forEach((track) => track.stop());
+      }
     };
   }, []);
+  useEffect(() => {
+    if (!transcript) return;
+
+    // Clear any previous timeout
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+
+    // When trigger word not yet detected
+    if (!isTriggerWordDetected) {
+      if (transcript.toLowerCase().includes(triggerWord)) {
+        setTriggerWordDetected(true);
+        resetTranscript();
+        audioChunksRef.current = [];
+        mediaRecorderRef.current?.start();
+        if (audioRef.current) audioRef.current.src = "";
+        console.log("Trigger word detected! Listening for command...");
+      }
+      return;
+    }
+
+    // When trigger word is detected, wait for user to stop talking
+    timeoutRef.current = setTimeout(async () => {
+      // Only act if the transcript changed from the last one
+      if (transcript !== lastTranscript) {
+        console.log("Final transcript:", transcript);
+        setLastTranscript(transcript);
+        mediaRecorderRef.current?.stop();
+        mediaRecorderRef.current.onstop = async () => {
+          const audioBlob = new Blob(audioChunksRef.current, {
+            type: "audio/wav",
+          });
+          audioChunksRef.current = [];
+
+          try {
+                        const formData = new FormData();
+            formData.append("transcript", transcript);
+            formData.append("audio", audioBlob, "audio.wav");
+
+console.log(typeof audioBlob, audioBlob);
+            const res = await fetch(`http://127.0.0.1:8001/generate`, {
+              method: "POST",
+              body: formData,
+            });
+            if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+            const blob = await res.blob();
+            const audioUrl = URL.createObjectURL(blob);
+
+            const canvas = canvasRef.current;
+            const audio = audioRef.current;
+
+            if (canvas && audio) {
+              audio.src = audioUrl;
+              canvas.width = window.innerWidth;
+              canvas.height = window.innerHeight;
+              console.log("audio", audio);
+              //  visualiseSpeech();
+            }
+
+            // Reset state
+            resetTranscript();
+            setTriggerWordDetected(false);
+            setLastTranscript("");
+          } catch (err) {
+            console.error("fetch /generate failed:", err);
+          }
+        };
+      }
+    }, 1500); // Wait 1.5 seconds of silence
+  }, [transcript, lastTranscript, isTriggerWordDetected]);
+
+  // useEffect(() => {
+  //   if (!transcript) return;
+  //   console.log("Transcript updated:", transcript);
+  //   // Clear any existing timeout
+  //   if (timeoutRef.current) {
+  //     clearTimeout(timeoutRef.current);
+  //   }
+
+  //   if (!isTriggerWordDetected) {
+  //     if (transcript.toLowerCase().includes(triggerWord)) {
+  //       setTriggerWordDetected(true);
+  //       console.log("Trigger word detected! Listening for command...");
+  //     }
+  //     return;
+  //   }
+
+  //   console.log("Processing command transcript:", transcript);
+  //   // Only send request if transcript has changed and is different from last sent transcript
+  //   if (transcript !== lastTranscript) {
+  //     // Wait for 1.5 seconds of silence before sending the request
+
+  //       console.log("Sending transcript:", transcript);
+  //       setLastTranscript(transcript);
+  //       try {
+  //         const res =  fetch(
+  //           `http://127.0.0.1:8001/generate?prompt=${transcript}`,
+  //           {
+  //             method: "POST",
+  //             headers: { "Content-Type": "application/json" },
+  //           }
+  //         );
+  //         if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+  //         const blob =  res.blob();
+  //         const audioUrl = URL.createObjectURL(blob);
+
+  //         const canvas = canvasRef.current;
+  //         const audio = audioRef.current;
+
+  //         if (canvas && audio) {
+  //           audio.src = audioUrl;
+  //           canvas.width = window.innerWidth;
+  //           canvas.height = window.innerHeight;
+  //           visualiseSpeech();
+  //         }
+
+  //         // Reset transcript after processing
+  //         resetTranscript();
+  //         setTriggerWordDetected(false);
+  //       } catch (err) {
+  //         console.error("fetch /generate failed:", err);
+  //       }
+
+  //   }
+  // }, [transcript, lastTranscript]);
 
   const visualiseSpeech = async () => {
     console.log("Visualising speech...");
-   
+
     const canvas = canvasRef.current;
     const audio = audioRef.current;
     const canvasContext = canvas.getContext("2d");
-    audio.play();
+    if (audio) {
+      audio.play();
+    }
+
     if (!audioContextRef.current) {
       //To extract data from audio source, we need an AnalyserNode
       audioContextRef.current = new AudioContext();
       analyserRef.current = audioContextRef.current.createAnalyser();
 
-     // Create media element source directly from audio element
-      audioSourceRef.current = audioContextRef.current.createMediaElementSource(audio);
-      
+      // Create media element source directly from audio element
+      audioSourceRef.current =
+        audioContextRef.current.createMediaElementSource(audio);
+
       // Connect the source to analyser and destination
       audioSourceRef.current.connect(analyserRef.current);
       analyserRef.current.connect(audioContextRef.current.destination);
@@ -89,7 +226,7 @@ function Face() {
       analyser.getByteTimeDomainData(dataArray);
       canvasContext.fillStyle = "black";
       canvasContext.fillRect(0, 0, canvas.width, canvas.height);
-      canvasContext.lineWidth = 2;
+      canvasContext.lineWidth = 5;
       canvasContext.strokeStyle = "lime";
       canvasContext.beginPath();
       const sliceWidth = canvas.width / bufferLength;
@@ -117,8 +254,8 @@ function Face() {
     <div className="karen-screen">
       <div className="face">
         <div className="mood-analyser">
-            <h1>Hi Palesa</h1>
-            <p>Your mood: Happy</p>
+          <h1>Hi Palesa</h1>
+          <p>Your mood: Happy</p>
         </div>
 
         <div className="mouth">

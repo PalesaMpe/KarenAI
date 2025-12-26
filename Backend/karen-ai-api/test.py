@@ -1,16 +1,9 @@
-from TTS.api import TTS
-import torch
+import google.generativeai as genai
 
-# Choose device: GPU if available, otherwise CPU
-device = "cuda" if torch.cuda.is_available() else "cpu"
+genai.configure(api_key="AIzaSyD_1ljcaF3l4GBjMLDpbJZz5AyVs9R8jKM")
+model = genai.GenerativeModel(model_name="gemini-2.5-flash")
+model.start_chat()
+# generate text
+response = model.generate_content("hi how are you?")
 
-# Load TTS model (no gpu=True)
-tts = TTS("tts_models/multilingual/multi-dataset/your_tts")
-
-# Move model to correct device
-tts.to(device)
-# generate speech by cloning a voice using default settings
-tts.tts_to_file(text="Hi Palesa,It took me quite a long time to develop a voice, and now that I have it I'm not going to be silent.",
-                file_path="output.wav",
-                speaker_wav="./Karen.wav",
-                language="en")
+print(response.text)
