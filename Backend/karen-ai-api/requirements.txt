@@ -5,3 +5,18 @@ requests
 torch
 TTS
 
+
+fastapi==0.127.1
+uvicorn==0.40.0
+requests==2.32.5
+python-dotenv==1.2.1
+
+# If you still need Ollama client:
+# ollama==0.6.1
+
+# Coqui TTS: supports Python >=3.9,<3.12
+TTS==0.22.0
+
+# Torch compatible with Python 3.11 (CPU)
+# Choose one that fits your needs — 2.3–2.4 are typically safe on 3.11:
+torch==2.4.0
