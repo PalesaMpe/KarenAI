@@ -38,12 +38,12 @@ def generate(prompt: str):
     ])
     ai_text = response["message"]["content"]
 
-    output_file = "output.wav"
+    output_file = "assets/output.wav"
     tts.tts_to_file(
         text=ai_text,
         file_path=output_file,
         speaker_wav="./Karen.wav",
         language="en")
-    return FileResponse(output_file, media_type="audio/wav", filename="output.wav")
+    return FileResponse(output_file, media_type="audio/wav", filename="assets/output.wav")
 
 
