@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "bootstrap": "^5.3.8",
-    "react-audio-spectrum": "^0.1.5"
+    "react-audio-spectrum": "^0.1.5",
+    "react-use-websocket": "^4.13.0"
   }
 }

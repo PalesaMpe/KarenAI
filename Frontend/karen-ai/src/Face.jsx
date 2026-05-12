@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import "./Face.css";
-import SpeechRecognition, {
-  useSpeechRecognition,
-} from "react-speech-recognition";
+import useWebSocket,{ReadyState} from 'react-use-websocket';
+
 function Face() {
   const canvasRef = useRef(null);
   const audioRef = useRef(null);
@@ -12,18 +11,27 @@ function Face() {
   const animationIdRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
-  const {
-    transcript,
-    listening,
-    resetTranscript,
-    browserSupportsSpeechRecognition,
-  } = useSpeechRecognition();
+   const timeoutRef = useRef(null);
+   const sockerUrl = "ws://127.0.0.1:800"
 
-  const [lastTranscript, setLastTranscript] = useState("");
-  const [isTriggerWordDetected, setTriggerWordDetected] = useState(false);
-  const triggerWord = "karen";
-  const timeoutRef = useRef(null);
-
+    const { sendJsonMessage, lastJsonMessage, readyState } = useWebSocket(
+    WS_URL,
+    {
+      share: false,
+      shouldReconnect: () => true,
+    },
+  )
+  useEffect(() => {
+    console.log("Connection state changed")
+    if (readyState === ReadyState.OPEN) {
+      sendJsonMessage({
+        event: "subscribe",
+        data: {
+          channel: "general-chatroom",
+        },
+      })
+    }
+  }, [readyState])
   useEffect(() => {
     const initializeAudioCapture = async () => {
       try {
@@ -40,7 +48,6 @@ function Face() {
       }
     };
 
-    SpeechRecognition.startListening({ continuous: true });
     initializeAudioCapture();
     return () => {
       if (audioContextRef.current) {
@@ -61,49 +68,9 @@ function Face() {
     };
   }, []);
   useEffect(() => {
-    if (!transcript) return;
-
-    // Clear any previous timeout
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-
-    // When trigger word not yet detected
-    if (!isTriggerWordDetected) {
-      if (transcript.toLowerCase().includes(triggerWord)) {
-        setTriggerWordDetected(true);
-        resetTranscript();
-        audioChunksRef.current = [];
-        mediaRecorderRef.current?.start();
-        if (audioRef.current) audioRef.current.src = "";
-        console.log("Trigger word detected! Listening for command...");
-      }
-      return;
-    }
-
-    // When trigger word is detected, wait for user to stop talking
-    timeoutRef.current = setTimeout(async () => {
-      // Only act if the transcript changed from the last one
-      if (transcript !== lastTranscript) {
-        console.log("Final transcript:", transcript);
-        setLastTranscript(transcript);
-        mediaRecorderRef.current?.stop();
-        mediaRecorderRef.current.onstop = async () => {
-          const audioBlob = new Blob(audioChunksRef.current, {
-            type: "audio/wav",
-          });
-          audioChunksRef.current = [];
-
-          try {
-                        const formData = new FormData();
-            formData.append("transcript", transcript);
-            formData.append("audio", audioBlob, "audio.wav");
-
-console.log(typeof audioBlob, audioBlob);
-            const res = await fetch(`http://127.0.0.1:8001/generate`, {
-              method: "POST",
-              body: formData,
-            });
-            if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-            const blob = await res.blob();
+       console.log(`Got a new message: ${lastJsonMessage}`)
+       const res = lastJsonMessage
+       const blob = await res.blob();
             const audioUrl = URL.createObjectURL(blob);
 
             const canvas = canvasRef.current;
@@ -114,20 +81,10 @@ console.log(typeof audioBlob, audioBlob);
               canvas.width = window.innerWidth;
               canvas.height = window.innerHeight;
               console.log("audio", audio);
-              //  visualiseSpeech();
+              visualiseSpeech();
             }
-
-            // Reset state
-            resetTranscript();
-            setTriggerWordDetected(false);
-            setLastTranscript("");
-          } catch (err) {
-            console.error("fetch /generate failed:", err);
-          }
-        };
-      }
-    }, 1500); // Wait 1.5 seconds of silence
-  }, [transcript, lastTranscript, isTriggerWordDetected]);
+    
+  }, [lastJsonMessage]);
 
   // useEffect(() => {
   //   if (!transcript) return;
@@ -262,7 +219,6 @@ console.log(typeof audioBlob, audioBlob);
           <canvas
             id="mouth-canvas"
             ref={canvasRef}
-            onClick={visualiseSpeech}
           ></canvas>
           <audio id="mouth-audio" ref={audioRef} controls></audio>
         </div>

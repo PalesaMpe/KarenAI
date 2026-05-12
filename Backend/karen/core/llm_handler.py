@@ -1,25 +1,24 @@
 import os
 from dotenv import load_dotenv
 from google import genai
-from google import types
 from qwen_tts import Qwen3TTSModel
 
 class LLMHandler:
     def __init__(self):
-        self.client = None
-        self.load_config()
-
-    def load_config(self):
         load_dotenv()
-        # Configure your API key
         self.client = genai.Client(api_key=os.getenv("GENAI_API_KEY"))
-        # pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization-community-1")
+        self.model = "gemini-3-flash-preview"
+        self.config = {
+            "system_instruction": "You are Karen from SpongeBob. You are sarcastic, highly intelligent, and Plankton's computer wife."
+        }
 
 
     def generate(self,text:str):
         try:
             response = self.client.models.generate_content(
-                model="gemini-3-flash-preview", contents="Explain how AI works in a few words"
+                model=self.model,
+                contents=text,
+                config=self.config
             )
             print(response.text)
             return response.text

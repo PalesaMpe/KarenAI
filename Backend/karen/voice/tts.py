@@ -1,25 +1,28 @@
+import io
+
 import torch
 import soundfile as sf
 from qwen_tts import Qwen3TTSModel
 
 class TTS:
-    def __init__(self):
+    def __init__(self,ref_audio_path, ref_transcript):
         self.model = Qwen3TTSModel.from_pretrained(
             "Qwen/Qwen3-TTS-12Hz-1.7B-Base",
-            device_map="cuda:0",
+            device_map="cpu",
             dtype=torch.bfloat16,
-            attn_implementation="flash_attention_2",
+            #attn_implementation="flash_attention_2",
         )
+        self.ref_audio = ref_audio_path
+        self.ref_transcript = ref_transcript
 
-    def convert(self, transcript, audio):
-        # single inference
-        ref_audio = audio
-        ref_transcript = transcript
-
+    def tts_buffer(self, text):
         wavs, sr = self.model.generate_voice_clone(
-            text="I am solving the equation: x = [-b ± √(b²-4ac)] / 2a? Nobody can — it's a disaster (◍•͈⌔•͈◍), very sad!",
+            text=text,
             language="English",
-            ref_audio=ref_audio,
-            ref_text=ref_transcript
+            ref_audio=self.ref_audio,
+            ref_text=self.ref_transcript
         )
-        sf.write("output_voice_clone.wav", wavs[0], sr)
+        buffer = io.BytesIO
+        sf.write(buffer, wavs[0], sr,format="wav")
+        buffer.seek(0)
+        return buffer
