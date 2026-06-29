@@ -1,0 +1,10 @@
+python-dotenv
+torch
+piper-tts
+fastapi
+google-genai
+Pyaudio
+torchaudio
+python-socketio
+openai-whisper
+SpeechRecognition
