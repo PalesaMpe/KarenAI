@@ -8,6 +8,8 @@ Follow the instructions below to get both the frontend (FE) and backend (BE) run
 
 Navigate to the frontend directory and run the following commands to install dependencies and start the development server.
 
+**Prerequisite:** Ensure you have **Node version 20.20.2** installed on your system before proceeding.
+
 ### Setup Instructions
 
 1. **Install dependencies:**
@@ -30,19 +32,30 @@ npm run dev
 
 1. **Create a virtual environment:**
 ```bash
-python -m venv .venv
+py -3.11 -m venv .venv
 ```
 
 
 2. **Activate the virtual environment:**
 * **On macOS/Linux:**
 ```bash
-source .venv/Scripts/activate
+.venv/Scripts/activate
 ```
 
 
 3. **Install dependencies:**
 ```bash
 pip install -r requirements.txt
+```
 
+Here are a few ways to rewrite that section, depending on how detailed you want it to be.
+
+4. **Configure Environment Variables:**
+The `LLMHandler` requires a GenAI API key
+https://aistudio.google.com/api-keys
+
+Create a `.env` file in the root of the backend directory and add your key:
+
+```env
+GENAI_API_KEY=your_api_key_here
 ```

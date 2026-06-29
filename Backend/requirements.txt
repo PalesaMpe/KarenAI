@@ -8,3 +8,4 @@ torchaudio
 python-socketio
 openai-whisper
 SpeechRecognition
+uvicorn

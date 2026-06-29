@@ -1,7 +1,6 @@
 import os
 from dotenv import load_dotenv
 from google import genai
-from qwen_tts import Qwen3TTSModel
 
 class LLMHandler:
     def __init__(self):
